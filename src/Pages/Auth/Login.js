@@ -1,6 +1,5 @@
-// LoginPage.js
 import { useCallback, useEffect, useState } from "react";
-import { Container, Row, Col, Form, Button } from "react-bootstrap";
+import { Container, Row, Col, Form, Button, InputGroup } from "react-bootstrap";
 import Particles from "react-tsparticles";
 import { loadFull } from "tsparticles";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
@@ -9,11 +8,12 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import { loginAPI } from "../../utils/ApiRequest";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // 👁️ Import eye icons
 
 const Login = () => {
   const navigate = useNavigate();
-
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // 👁️ State for password visibility
 
   useEffect(() => {
     if (localStorage.getItem("user")) {
@@ -43,34 +43,31 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const { email, password } = values;
-
     setLoading(true);
-
-    const { data } = await axios.post(loginAPI, {
-      email,
-      password,
-    });
-
-    if (data.success === true) {
-      localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/");
-      toast.success(data.message, toastOptions);
-      setLoading(false);
-    } else {
-      toast.error(data.message, toastOptions);
+    
+    const { email, password } = values;
+    try {
+      const { data } = await axios.post(loginAPI, { email, password });
+      if (data.success) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        toast.success(data.message, toastOptions);
+        setTimeout(() => navigate("/"), 1500); // Redirect after delay
+      } else {
+        toast.error(data.message, toastOptions);
+      }
+    } catch (error) {
+      toast.error("Login failed! Please try again.", toastOptions);
+    } finally {
       setLoading(false);
     }
   };
 
-  const particlesInit = useCallback(async (engine) => {
-    // console.log(engine);
-    await loadFull(engine);
-  }, []);
+  const togglePasswordVisibility = () => {
+    setShowPassword((prev) => !prev);
+  };
 
-  const particlesLoaded = useCallback(async (container) => {
-    // await console.log(container);
+  const particlesInit = useCallback(async (engine) => {
+    await loadFull(engine);
   }, []);
 
   return (
@@ -78,57 +75,16 @@ const Login = () => {
       <Particles
         id="tsparticles"
         init={particlesInit}
-        loaded={particlesLoaded}
         options={{
-          background: {
-            color: {
-              value: "#000",
-            },
-          },
+          background: { color: { value: "#000" } },
           fpsLimit: 60,
           particles: {
-            number: {
-              value: 200,
-              density: {
-                enable: true,
-                value_area: 800,
-              },
-            },
-            color: {
-              value: "#ffcc00",
-            },
-            shape: {
-              type: "circle",
-            },
-            opacity: {
-              value: 0.5,
-              random: true,
-            },
-            size: {
-              value: 3,
-              random: { enable: true, minimumValue: 1 },
-            },
-            links: {
-              enable: false,
-            },
-            move: {
-              enable: true,
-              speed: 2,
-            },
-            life: {
-              duration: {
-                sync: false,
-                value: 3,
-              },
-              count: 0,
-              delay: {
-                random: {
-                  enable: true,
-                  minimumValue: 0.5,
-                },
-                value: 1,
-              },
-            },
+            number: { value: 200, density: { enable: true, value_area: 800 } },
+            color: { value: "#ffcc00" },
+            shape: { type: "circle" },
+            opacity: { value: 0.5, random: true },
+            size: { value: 3, random: { enable: true, minimumValue: 1 } },
+            move: { enable: true, speed: 2 },
           },
           detectRetina: true,
         }}
@@ -141,20 +97,15 @@ const Login = () => {
           bottom: 0,
         }}
       />
-      <Container
-        className="mt-5"
-        style={{ position: "relative", zIndex: "2 !important" }}
-      >
+      <Container className="mt-5" style={{ position: "relative", zIndex: 2 }}>
         <Row>
           <Col md={{ span: 6, offset: 3 }}>
             <h1 className="text-center mt-5">
-              <AccountBalanceWalletIcon
-                sx={{ fontSize: 40, color: "white" }}
-                className="text-center"
-              />
+              <AccountBalanceWalletIcon sx={{ fontSize: 40, color: "white" }} />
             </h1>
-            <h2 className="text-white text-center ">Login</h2>
+            <h2 className="text-white text-center">Login</h2>
             <Form>
+              {/* Email Input */}
               <Form.Group controlId="formBasicEmail" className="mt-3">
                 <Form.Label className="text-white">Email address</Form.Label>
                 <Form.Control
@@ -166,42 +117,51 @@ const Login = () => {
                 />
               </Form.Group>
 
+              {/* Password Input with Eye Icon */}
               <Form.Group controlId="formBasicPassword" className="mt-3">
                 <Form.Label className="text-white">Password</Form.Label>
-                <Form.Control
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  onChange={handleChange}
-                  value={values.password}
-                />
+                <InputGroup>
+                  <Form.Control
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Password"
+                    onChange={handleChange}
+                    value={values.password}
+                  />
+                  <Button
+                    variant="outline-secondary"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </Button>
+                </InputGroup>
               </Form.Group>
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexDirection: "column",
-                }}
-                className="mt-4"
-              >
-                <Link to="/forgotPassword" className="text-white lnk">
+
+              <div className="mt-4 text-center">
+                <Link to="/forgotPassword" className="text-white">
                   Forgot Password?
                 </Link>
 
+                {/* Login Button with Loader */}
                 <Button
                   type="submit"
-                  className=" text-center mt-3 btnStyle"
+                  className="text-center mt-3 btnStyle"
                   onClick={!loading ? handleSubmit : null}
                   disabled={loading}
                 >
-                  {loading ? "Signin…" : "Login"}
+                  {loading ? (
+                    <span>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Signing in...
+                    </span>
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
 
                 <p className="mt-3" style={{ color: "#9d9494" }}>
                   Don't Have an Account?{" "}
-                  <Link to="/register" className="text-white lnk">
+                  <Link to="/register" className="text-white">
                     Register
                   </Link>
                 </p>
